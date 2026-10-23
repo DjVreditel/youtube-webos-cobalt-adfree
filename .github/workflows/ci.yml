@@ -11,6 +11,43 @@ permissions:
   contents: read
 
 jobs:
+  aac-host-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check out Cobalt 23.lts.6 AAC adapter
+        uses: actions/checkout@v5
+        with:
+          repository: youtube/cobalt
+          ref: 007628df7bddd86e53d6d151ecd122614916223d
+          path: workdir/cobalt-aac-test
+          sparse-checkout: |
+            starboard/shared/libfdkaac
+            third_party/libfdkaac
+
+      - name: Check out pinned FDK-AAC 2.0.3
+        uses: actions/checkout@v5
+        with:
+          repository: mstorsjo/fdk-aac
+          ref: 716f4394641d53f0d79c9ddac3fa93b03a49f278
+          path: workdir/fdk-aac-test
+
+      - name: Test loader and actual AAC decoding
+        run: |
+          git -C workdir/cobalt-aac-test apply --check "$GITHUB_WORKSPACE/cobalt-platform/cobalt-23.lts.6-webos-bundled-aac.patch"
+          git -C workdir/cobalt-aac-test apply "$GITHUB_WORKSPACE/cobalt-platform/cobalt-23.lts.6-webos-bundled-aac.patch"
+          cmake -S workdir/fdk-aac-test -B "$RUNNER_TEMP/fdk-aac-host" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_PROGRAMS=OFF
+          cmake --build "$RUNNER_TEMP/fdk-aac-host" --parallel 4
+          python3 scripts/test-fdk-aac-decoder.py workdir/cobalt-aac-test \
+            --library "$RUNNER_TEMP/fdk-aac-host/libfdk-aac.so"
+
+      - name: Test AAC packaging and artifact retention
+        run: python3 scripts/test-bundled-aac-package.py
+
   smoke-test:
     runs-on: ubuntu-latest
 

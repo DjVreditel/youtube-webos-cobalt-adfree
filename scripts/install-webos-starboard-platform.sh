@@ -19,6 +19,7 @@ dav1d_api_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-dav1d-api.patc
 starfish_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-starfish.patch"
 shared_av_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-shared-av.patch"
 hardware_video_capabilities_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-hardware-video-capabilities.patch"
+bundled_aac_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-bundled-aac.patch"
 pulse_soname_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-pulse-soname.patch"
 pulse_tuning_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-pulse-tuning.patch"
 external_video_seek_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-external-video-seek.patch"
@@ -125,6 +126,12 @@ if ! grep -q "TV's Starfish hardware pipeline" \
   "$cobalt_root/starboard/linux/shared/media_is_video_supported.cc"; then
   git -C "$cobalt_root" apply --check "$hardware_video_capabilities_patch"
   git -C "$cobalt_root" apply "$hardware_video_capabilities_patch"
+fi
+
+if ! grep -Fq '$ORIGIN/lib/libfdk-aac.so' \
+  "$cobalt_root/starboard/shared/libfdkaac/libfdkaac_library_loader.cc"; then
+  git -C "$cobalt_root" apply --check "$bundled_aac_patch"
+  git -C "$cobalt_root" apply "$bundled_aac_patch"
 fi
 
 if ! grep -q 'kPulseLibraryName.*libpulse.so.0' \

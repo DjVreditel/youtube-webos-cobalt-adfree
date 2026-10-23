@@ -205,7 +205,7 @@ jobs:
           test -d "$build_dir/content"
           archive="cobalt-${COBALT_SLUG}-sb13-${BUILD_TYPE}-${SHORT_SHA}.tar.xz"
           archive_path="$GITHUB_WORKSPACE/output/$archive"
-          tar -C "$build_dir" -cJf "$archive_path" cobalt content
+          tar -C "$build_dir" -cJf "$archive_path" cobalt content lib/libfdk-aac.so lib/fdk-aac-build.txt
           sha256sum "$archive_path" > "$archive_path.sha256"
           printf '%s\n' "repository=$GITHUB_REPOSITORY" "source_ref=$GITHUB_REF_NAME" "source_sha=$SOURCE_SHA" "cobalt_ref=$COBALT_REF" "starboard_api=13" "build_type=$BUILD_TYPE" "archive=$archive" > "$GITHUB_WORKSPACE/output/cobalt-build.txt"
           echo "archive=$archive" >> "$GITHUB_OUTPUT"

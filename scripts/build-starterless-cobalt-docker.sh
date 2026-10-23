@@ -44,6 +44,12 @@ VPX_PARALLEL="$parallel" \
 DAV1D_PARALLEL="$parallel" \
   "$repo_root/scripts/build-webos-video-codecs-docker.sh"
 
+echo "Building the software AAC decoder dependency."
+COBALT_SOURCE_DIR="$cobalt_root" \
+WEBOS_LINUX_SDK_VOLUME="$sdk_volume" \
+NINJA_PARALLEL="$parallel" \
+  "$repo_root/scripts/build-fdk-aac-webos-docker.sh"
+
 echo "Building YTAF web assets."
 make -C "$repo_root" docker-make.npm
 
@@ -69,7 +75,10 @@ docker run --rm --platform linux/amd64 \
   -e WEBOS_SDK_ROOT=/sdk/arm-webos-linux-gnueabi_sdk-buildroot \
   -e SDL2_BUNDLE_DIR=/sdl \
   cobalt-build-evergreen:latest \
-  sh -c "git config --global --add safe.directory /code && gn --script-executable=python3 gen '$out_dir' --args='target_platform=\"webos-arm\" build_type=\"$build_type\" target_cpu=\"arm\" sb_api_version=13 is_clang=false' && ninja -v -j '$parallel' -C '$out_dir' cobalt" \
+  sh -c "git config --global --add safe.directory /code && gn --script-executable=python3 gen '$out_dir' --args='target_platform=\"webos-arm\" build_type=\"$build_type\" target_cpu=\"arm\" sb_api_version=13 is_clang=false' && ninja -v -j '$parallel' -C '$out_dir' cobalt && \
+    mkdir -p '$out_dir/lib' '$out_dir/content/licenses' && \
+    cp out/fdk-aac-webos/bundle/libfdk-aac.so out/fdk-aac-webos/bundle/fdk-aac-build.txt '$out_dir/lib/' && \
+    cp out/fdk-aac-webos/bundle/fdk-aac.txt '$out_dir/content/licenses/'" \
   2>&1 | tee "$build_log"
 
 cobalt_binary="$cobalt_root/$out_dir/cobalt"

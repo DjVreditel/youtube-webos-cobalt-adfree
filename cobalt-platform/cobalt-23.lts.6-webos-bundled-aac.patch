@@ -1,0 +1,19 @@
+--- a/starboard/shared/libfdkaac/libfdkaac_library_loader.cc
++++ b/starboard/shared/libfdkaac/libfdkaac_library_loader.cc
+@@ -51,6 +51,16 @@
+ void LibfdkaacHandle::LoadLibrary() {
+   SB_DCHECK(!handle_);
++#if defined(STARBOARD_WEBOS)
++  // The app is ARMv7 even on aarch64 firmware, which may omit compatible AAC
++  // libraries. Prefer the packaged, SDK-built decoder using glibc's ORIGIN
++  // expansion; keep the existing system-library fallback for development.
++  handle_ = dlopen("$ORIGIN/lib/libfdk-aac.so", RTLD_NOW | RTLD_LOCAL);
++  if (!handle_) {
++    handle_ = dlopen(kLibfdkaacLibraryName, RTLD_LAZY);
++  }
++#else
+   handle_ = dlopen(kLibfdkaacLibraryName, RTLD_LAZY);
++#endif
+   if (!handle_) {
+     return;
+   }
