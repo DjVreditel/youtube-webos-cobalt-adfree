@@ -80,9 +80,7 @@ test('preload removes homepage ad slots before browse content is consumed', () =
   ] } };
   const result = parser(true, true)(response);
   assert.deepEqual(result.contents.items[0], normal);
-  assert.equal(result.contents.items.length, 3);
-  assert.equal(result.contents.items[1].richItemRenderer.content.adSlotRenderer, undefined);
-  assert.deepEqual(result.contents.items[2], {});
+  assert.deepEqual(result.contents.items, [normal]);
 });
 
 test('preload removes video ad fields and reel ad entries', () => {
