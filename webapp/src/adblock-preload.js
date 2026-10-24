@@ -1,4 +1,6 @@
 import { configRead } from './config.js';
+import { stripYouTubeAds, stripAdditionalYouTubeAds } from './ad-response-filter.mjs';
+import { stripSponsoredQrCodePopups } from './sponsored-qr-code-block.mjs';
 import {
   isBrowseResponse,
   isGuideResponse,
@@ -8,8 +10,8 @@ import {
 if (!window.__ytafPreloadExecuted) {
   window.__ytafPreloadExecuted = true;
 
-  if (!window.__ytafShortsResponseFilterInstalled) {
-    window.__ytafShortsResponseFilterInstalled = true;
+  if (!window.__ytafResponseFilterInstalled) {
+    window.__ytafResponseFilterInstalled = true;
 
     const descriptor = Object.getOwnPropertyDescriptor(JSON, 'parse');
     const nativeParse = JSON.parse;
@@ -174,6 +176,10 @@ if (!window.__ytafPreloadExecuted) {
       if (!Boolean(configRead('enableShorts'))) {
         stripShortsFromBrowseResponse(guideResponse);
       }
+      if (Boolean(configRead('enableAdBlock'))) {
+        stripYouTubeAds(guideResponse);
+        stripAdditionalYouTubeAds(guideResponse);
+      }
 
       try {
         // The caller only identifies the target and its argument shape. It may
@@ -220,6 +226,17 @@ if (!window.__ytafPreloadExecuted) {
           stripShortsFromBrowseResponse(value)
         ) {
           console.log('[ytaf preload] Shorts blocker removed response entries');
+        }
+
+        if (Boolean(configRead('enableAdBlock'))) {
+          const strippedFields = stripYouTubeAds(value);
+          const strippedEntries = stripAdditionalYouTubeAds(value);
+          if (strippedFields || strippedEntries) {
+            console.log('[ytaf preload] Removed YouTube ads');
+          }
+        }
+        if (Boolean(configRead('enableSponsoredQrCodeBlock'))) {
+          stripSponsoredQrCodePopups(value);
         }
 
         return value;
