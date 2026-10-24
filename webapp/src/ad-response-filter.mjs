@@ -39,7 +39,10 @@ export function stripYouTubeAds(value, depth = 0) {
 function isAdditionalAdEntry(value) {
   if (!value || typeof value !== 'object') return false;
 
-  if (Object.prototype.hasOwnProperty.call(value, 'adSlotRenderer')) {
+  if (Object.prototype.hasOwnProperty.call(value, 'adSlotRenderer') ||
+      Object.prototype.hasOwnProperty.call(value, 'tvMastheadRenderer') ||
+      value.richItemRenderer?.content?.adSlotRenderer ||
+      value.tileRenderer?.content?.adSlotRenderer) {
     return true;
   }
 
