@@ -14,6 +14,7 @@
 #include <cstring>
 #include <functional>
 #include <mutex>
+#include <poll.h>
 #include <thread>
 #include <vector>
 
@@ -57,6 +58,7 @@ struct LgVoiceCapture::Impl {
   LSMessageToken token = LSMESSAGE_TOKEN_INVALID;
   LSMessageToken stop_token = LSMESSAGE_TOKEN_INVALID;
   int audio_fd = -1;
+  bool connecting = false;
   std::string pending_path;
   std::chrono::steady_clock::time_point connect_deadline;
   bool pending_byte = false;
@@ -170,9 +172,8 @@ struct LgVoiceCapture::Impl {
     sockaddr_un address{};
     address.sun_family = AF_UNIX;
     std::memcpy(address.sun_path, path.c_str(), path.size() + 1);
-    if (connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) <
-            0 &&
-        errno != EINPROGRESS) {
+    int result = connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address));
+    if (result < 0 && errno != EINPROGRESS) {
       const int saved_errno = errno;
       close(fd);
       if ((saved_errno != ENOENT && saved_errno != ECONNREFUSED &&
@@ -184,6 +185,42 @@ struct LgVoiceCapture::Impl {
       return;
     }
     audio_fd = fd;
+    connecting = (result < 0);
+    if (!connecting) pending_path.clear();
+  }
+
+  // Nonblocking connect() can report EINPROGRESS. Confirm completion before
+  // receiving audio, and retry transient failures until the deadline.
+  void FinishConnect() {
+    if (!connecting) return;
+    if (std::chrono::steady_clock::now() >= connect_deadline) {
+      close(audio_fd);
+      audio_fd = -1;
+      connecting = false;
+      pending_path.clear();
+      Fail("Voice socket connection timed out");
+      return;
+    }
+    pollfd descriptor{audio_fd, POLLOUT, 0};
+    int result = poll(&descriptor, 1, 0);
+    if (result == 0 || (result < 0 && errno == EINTR)) return;
+    int socket_error = 0;
+    socklen_t length = sizeof(socket_error);
+    if (result < 0 ||
+        getsockopt(audio_fd, SOL_SOCKET, SO_ERROR, &socket_error, &length) < 0)
+      socket_error = errno;
+    if (socket_error != 0) {
+      close(audio_fd);
+      audio_fd = -1;
+      connecting = false;
+      if (socket_error != ENOENT && socket_error != ECONNREFUSED &&
+          socket_error != EAGAIN) {
+        pending_path.clear();
+        Fail("Cannot connect to voice socket");
+      }
+      return;
+    }
+    connecting = false;
     pending_path.clear();
   }
 
@@ -198,6 +235,8 @@ struct LgVoiceCapture::Impl {
     if (self->audio_fd < 0 && !self->pending_path.empty())
       self->Connect(self->pending_path);
     if (self->audio_fd < 0) return G_SOURCE_CONTINUE;
+    self->FinishConnect();
+    if (self->audio_fd < 0 || self->connecting) return G_SOURCE_CONTINUE;
     unsigned char bytes[4096];
     for (;;) {
       ssize_t size = recv(self->audio_fd, bytes, sizeof(bytes), 0);
@@ -271,7 +310,9 @@ struct LgVoiceCapture::Impl {
     if (self->stopping) return G_SOURCE_REMOVE;
     self->stopping = true;
     self->RequestStopRecording();
-    GSource* source = g_timeout_source_new(500);
+    // Allow late recordVoice replies time to deliver their recording ticket.
+    // Keep shutdown bounded if the service never responds.
+    GSource* source = g_timeout_source_new(2000);
     g_source_set_callback(source, Quit, self, nullptr);
     g_source_attach(source, self->context);
     g_source_unref(source);
