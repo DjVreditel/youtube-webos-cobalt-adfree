@@ -1,0 +1,22 @@
+--- a/starboard/linux/shared/BUILD.gn
++++ b/starboard/linux/shared/BUILD.gn
+@@ -410,6 +410,19 @@
+     ]
+   }
+ 
++  # LG voiceconductor supplies microphone capture for webOS.
++  if (target_platform == "webos-arm") {
++    sources -= [
++      "//starboard/shared/stub/microphone_close.cc",
++      "//starboard/shared/stub/microphone_create.cc",
++      "//starboard/shared/stub/microphone_destroy.cc",
++      "//starboard/shared/stub/microphone_get_available.cc",
++      "//starboard/shared/stub/microphone_is_sample_rate_supported.cc",
++      "//starboard/shared/stub/microphone_open.cc",
++      "//starboard/shared/stub/microphone_read.cc",
++    ]
++  }
++
+   sources += common_player_sources
+ 
+   sources -= [ "//starboard/shared/starboard/player/player_set_bounds.cc" ]

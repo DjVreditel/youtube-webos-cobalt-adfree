@@ -11,6 +11,43 @@ permissions:
   contents: read
 
 jobs:
+  webos-microphone-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install microphone test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ pkg-config libglib2.0-dev libjson-c-dev rsync
+
+      - name: Run webOS microphone regressions
+        run: bash scripts/test-webos-microphone.sh
+
+      - name: Check out clean Cobalt overlay fixture
+        uses: actions/checkout@v5
+        with:
+          repository: youtube/cobalt
+          ref: 23.lts.6
+          path: workdir/cobalt-microphone-test
+          sparse-checkout: |
+            starboard
+            cobalt/renderer/backend/egl
+            cobalt/media/base
+            cobalt/system_window
+            net
+
+      - name: Install microphone overlay twice on clean Cobalt
+        run: |
+          test "$(git -C workdir/cobalt-microphone-test rev-parse HEAD)" = 007628df7bddd86e53d6d151ecd122614916223d
+          bash scripts/install-webos-starboard-platform.sh workdir/cobalt-microphone-test
+          git -C workdir/cobalt-microphone-test diff --binary HEAD > "$RUNNER_TEMP/overlay-first.diff"
+          bash scripts/install-webos-starboard-platform.sh workdir/cobalt-microphone-test
+          git -C workdir/cobalt-microphone-test diff --binary HEAD > "$RUNNER_TEMP/overlay-second.diff"
+          cmp "$RUNNER_TEMP/overlay-first.diff" "$RUNNER_TEMP/overlay-second.diff"
+
   aac-host-test:
     runs-on: ubuntu-latest
 
