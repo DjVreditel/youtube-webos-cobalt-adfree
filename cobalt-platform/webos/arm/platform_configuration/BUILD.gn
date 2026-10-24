@@ -27,6 +27,8 @@ config("compiler_flags") {
     "-fdata-sections",
     "-I$webos_sdl2_root/include",
     "-I$webos_sdk_root/arm-webos-linux-gnueabi/sysroot/usr/include",
+    "-I$webos_sdk_root/arm-webos-linux-gnueabi/sysroot/usr/include/glib-2.0",
+    "-I$webos_sdk_root/arm-webos-linux-gnueabi/sysroot/usr/lib/glib-2.0/include",
     "-Wno-deprecated-declarations",
     "-Wno-missing-field-initializers",
     "-Wno-unused-parameter",

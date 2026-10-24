@@ -28,6 +28,7 @@ external_video_preroll_sync_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-we
 external_video_repeated_seek_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-external-video-repeated-seek.patch"
 lifecycle_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-lifecycle.patch"
 demuxer_stop_race_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-demuxer-stop-race.patch"
+microphone_patch="$repo_root/cobalt-platform/cobalt-23.lts.6-webos-microphone.patch"
 
 if ! git -C "$cobalt_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
    [[ ! -f "$platforms_file" ]]; then
@@ -180,6 +181,12 @@ if ! grep -q 'Ignore that stale callback before dereferencing its stream' \
   "$cobalt_root/cobalt/media/base/sbplayer_pipeline.cc"; then
   git -C "$cobalt_root" apply --check "$demuxer_stop_race_patch"
   git -C "$cobalt_root" apply "$demuxer_stop_race_patch"
+fi
+
+if ! grep -q 'LG voiceconductor supplies microphone' \
+  "$cobalt_root/starboard/linux/shared/BUILD.gn"; then
+  git -C "$cobalt_root" apply --check "$microphone_patch"
+  git -C "$cobalt_root" apply "$microphone_patch"
 fi
 
 echo "Installed webos-arm Starboard platform into: $platform_target"
