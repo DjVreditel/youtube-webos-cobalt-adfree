@@ -188,7 +188,8 @@ int main() {
   assert(stops == 1 && cancellations == 1 && handles == 0);
 
   // Closing before the asynchronous ticket arrives must still stop that ticket.
-  reply_delay_ms = 50;
+  // A recording ticket can arrive after the old 500 ms shutdown window.
+  reply_delay_ms = 900;
   assert(capture.Open());
   capture.Close();
   assert(stops == 2 && cancellations == 2 && handles == 0);
