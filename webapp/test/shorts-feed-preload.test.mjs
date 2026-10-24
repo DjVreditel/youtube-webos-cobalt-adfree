@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 import * as filters from '../src/shorts-response-filter.mjs';
+import * as adFilters from '../src/ad-response-filter.mjs';
+import { stripSponsoredQrCodePopups } from '../src/sponsored-qr-code-block.mjs';
 
 const source = readFileSync(new URL('../src/adblock-preload.js', import.meta.url), 'utf8');
 const normal = { tileRenderer: { onSelectCommand: { watchEndpoint: { videoId: 'normal' } } } };
@@ -13,7 +15,9 @@ const shortTile = { tileRenderer: { onSelectCommand: { reelWatchEndpoint: {
 function parser(enabled = false, downstream = false) {
   const context = vm.createContext({
     ...filters,
-    configRead: () => enabled,
+    ...adFilters,
+    stripSponsoredQrCodePopups,
+    configRead: (key) => key === 'enableShorts' ? enabled : key === 'enableAdBlock',
     document: { querySelector: () => null },
     window: {},
     console: { info() {}, log() {}, warn() {}, error() {} }
@@ -64,4 +68,30 @@ test('player responses and unrelated JSON are preserved', () => {
     { settings: { items: [shortTile] } }
   ]) assert.deepEqual(parse(response), response);
   assert.equal(filters.isShortsPath({}), false);
+});
+
+
+test('preload removes homepage ad slots before browse content is consumed', () => {
+  const response = { contents: { items: [
+    normal,
+    { adSlotRenderer: { slotId: 'home-ad' } },
+    { richItemRenderer: { content: { adSlotRenderer: { slotId: 'nested' } } } },
+    { tvMastheadRenderer: { title: 'advertisement' } }
+  ] } };
+  const result = parser(true, true)(response);
+  assert.deepEqual(result.contents.items[0], normal);
+  assert.deepEqual(result.contents.items, [normal]);
+});
+
+test('preload removes video ad fields and reel ad entries', () => {
+  const response = { videoDetails: { videoId: 'normal' }, adPlacements: [{ ad: 1 }],
+    playerAds: [{ ad: 2 }], contents: { items: [normal, {
+      reelItemRenderer: { navigationEndpoint: { reelWatchEndpoint: {
+        videoType: 'REEL_VIDEO_TYPE_AD'
+      } } }
+    }] } };
+  const result = parser(true)(response);
+  assert.deepEqual(result.adPlacements, []);
+  assert.deepEqual(result.playerAds, []);
+  assert.deepEqual(result.contents.items, [normal]);
 });

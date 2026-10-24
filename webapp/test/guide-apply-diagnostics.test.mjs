@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 import * as filters from '../src/shorts-response-filter.mjs';
+import * as adFilters from '../src/ad-response-filter.mjs';
+import { stripSponsoredQrCodePopups } from '../src/sponsored-qr-code-block.mjs';
 
 const source = readFileSync(new URL('../src/adblock-preload.js', import.meta.url), 'utf8');
 
@@ -10,6 +12,8 @@ test('class constructor call site discovers J without invoking the constructor',
   let enabled = true;
   const context = vm.createContext({
     ...filters,
+    ...adFilters,
+    stripSponsoredQrCodePopups,
     configRead: () => enabled,
     window: {},
     console: { info() {}, log() {}, warn() {}, error() {} }
@@ -46,6 +50,8 @@ for (const failInCaller of [true, false]) {
     const logs = [];
     const context = vm.createContext({
       ...filters,
+      ...adFilters,
+      stripSponsoredQrCodePopups,
       configRead: () => false,
       window: {},
       console: { info() {}, log() {}, warn() {}, error: (...args) => logs.push(args) },
