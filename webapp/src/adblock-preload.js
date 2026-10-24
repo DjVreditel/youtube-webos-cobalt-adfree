@@ -177,8 +177,8 @@ if (!window.__ytafPreloadExecuted) {
         stripShortsFromBrowseResponse(guideResponse);
       }
       if (Boolean(configRead('enableAdBlock'))) {
-        stripYouTubeAds(guideResponse);
         stripAdditionalYouTubeAds(guideResponse);
+        stripYouTubeAds(guideResponse);
       }
 
       try {
@@ -229,8 +229,9 @@ if (!window.__ytafPreloadExecuted) {
         }
 
         if (Boolean(configRead('enableAdBlock'))) {
-          const strippedFields = stripYouTubeAds(value);
+          // Remove full ad entries first, before removing ad-specific properties.
           const strippedEntries = stripAdditionalYouTubeAds(value);
+          const strippedFields = stripYouTubeAds(value);
           if (strippedFields || strippedEntries) {
             console.log('[ytaf preload] Removed YouTube ads');
           }
