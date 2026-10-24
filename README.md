@@ -8,6 +8,10 @@ Unofficial Cobalt-based YouTube modification for LG webOS TVs with ad blocking a
 
 > This project is unofficial and is not affiliated with YouTube, Google, LG or webOS.
 
+![YouTube webOS Cobalt AdFree settings](docs/images/settings.webp)
+
+![YouTube playback with SponsorBlock segments and dislike counts](docs/images/playback.webp)
+
 ## Features
 
 - YouTube for LG webOS TVs
